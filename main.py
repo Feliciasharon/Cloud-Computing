@@ -11,27 +11,25 @@ from fastapi import FastAPI, HTTPException
 from fastapi import Query, Path
 from typing import Optional
 
-from models.person import PersonCreate, PersonRead, PersonUpdate
-from models.address import AddressCreate, AddressRead, AddressUpdate
+from models.anime import AnimeCreate, AnimeRead, AnimeUpdate
+from models.characters import CharacterCreate, CharacterRead, CharacterUpdate
 from models.health import Health
 
-port = int(os.environ.get("FASTAPIPORT", 8000))
+port = int(os.environ.get("FASTAPIPORT", 8003))
 
 # -----------------------------------------------------------------------------
 # Fake in-memory "databases"
 # -----------------------------------------------------------------------------
-persons: Dict[UUID, PersonRead] = {}
-addresses: Dict[UUID, AddressRead] = {}
+
+animes: Dict[UUID, AnimeRead] = {}
+characters: Dict[UUID, CharacterRead] = {}
 
 app = FastAPI(
-    title="Person/Address API",
-    description="Demo FastAPI app using Pydantic v2 models for Person and Address",
+    title="Anime/Character API",
+    description="Demo FastAPI app using Pydantic v2 models for Anime and Characters",
     version="0.1.0",
 )
 
-# -----------------------------------------------------------------------------
-# Address endpoints
-# -----------------------------------------------------------------------------
 
 def make_health(echo: Optional[str], path_echo: Optional[str]=None) -> Health:
     return Health(
@@ -55,116 +53,122 @@ def get_health_with_path(
 ):
     return make_health(echo=echo, path_echo=path_echo)
 
-@app.post("/addresses", response_model=AddressRead, status_code=201)
-def create_address(address: AddressCreate):
-    if address.id in addresses:
-        raise HTTPException(status_code=400, detail="Address with this ID already exists")
-    addresses[address.id] = AddressRead(**address.model_dump())
-    return addresses[address.id]
 
-@app.get("/addresses", response_model=List[AddressRead])
-def list_addresses(
-    street: Optional[str] = Query(None, description="Filter by street"),
-    city: Optional[str] = Query(None, description="Filter by city"),
-    state: Optional[str] = Query(None, description="Filter by state/region"),
-    postal_code: Optional[str] = Query(None, description="Filter by postal code"),
-    country: Optional[str] = Query(None, description="Filter by country"),
+# -----------------------------------------------------------------------------
+# Character endpoints
+# -----------------------------------------------------------------------------
+@app.post("/characters", response_model=CharacterRead, status_code=201)
+def create_character(character: CharacterCreate):
+    if character.id in characters:
+        raise HTTPException(status_code=400, detail="Character with this ID already exists")
+    characters[character.id] = CharacterRead(**character.model_dump())
+    return characters[character.id]
+
+@app.get("/characters", response_model=List[CharacterRead])
+def list_characters(
+    name: Optional[str] = Query(None, description="Filter by name"),
+    role: Optional[str] = Query(None, description="Filter by role"),
+    alias: Optional[str] = Query(None, description="Filter by alias"),
+    gender: Optional[str] = Query(None, description="Filter by gender"),
+    ability: Optional[str] = Query(None, description="Filter by ability"),
 ):
-    results = list(addresses.values())
+    results = list(characters.values())
 
-    if street is not None:
-        results = [a for a in results if a.street == street]
-    if city is not None:
-        results = [a for a in results if a.city == city]
-    if state is not None:
-        results = [a for a in results if a.state == state]
-    if postal_code is not None:
-        results = [a for a in results if a.postal_code == postal_code]
-    if country is not None:
-        results = [a for a in results if a.country == country]
+    if name is not None:
+        results = [a for a in results if a.name == name]
+    if role is not None:
+        results = [a for a in results if a.role == role]
+    if alias is not None:
+        results = [a for a in results if a.alias == alias]
+    if gender is not None:
+        results = [a for a in results if a.gender == gender]
+    if ability is not None:
+        results = [a for a in results if a.ability == ability]
 
     return results
 
-@app.get("/addresses/{address_id}", response_model=AddressRead)
-def get_address(address_id: UUID):
-    if address_id not in addresses:
-        raise HTTPException(status_code=404, detail="Address not found")
-    return addresses[address_id]
+@app.get("/characters/{character_id}", response_model=CharacterRead)
+def get_character(character_id: UUID):
+    if character_id not in characters:
+        raise HTTPException(status_code=404, detail="character not found")
+    return characters[character_id]
 
-@app.patch("/addresses/{address_id}", response_model=AddressRead)
-def update_address(address_id: UUID, update: AddressUpdate):
-    if address_id not in addresses:
-        raise HTTPException(status_code=404, detail="Address not found")
-    stored = addresses[address_id].model_dump()
+@app.patch("/characters/{character_id}", response_model=CharacterRead)
+def update_character(character_id: UUID, update: CharacterUpdate):
+    if character_id not in characters:
+        raise HTTPException(status_code=404, detail="Character not found")
+    stored = characters[character_id].model_dump()
     stored.update(update.model_dump(exclude_unset=True))
-    addresses[address_id] = AddressRead(**stored)
-    return addresses[address_id]
+    characters[character_id] = CharacterRead(**stored)
+    return characters[character_id]
+
 
 # -----------------------------------------------------------------------------
-# Person endpoints
+# Anime endpoints
 # -----------------------------------------------------------------------------
-@app.post("/persons", response_model=PersonRead, status_code=201)
-def create_person(person: PersonCreate):
-    # Each person gets its own UUID; stored as PersonRead
-    person_read = PersonRead(**person.model_dump())
-    persons[person_read.id] = person_read
-    return person_read
+@app.post("/animes", response_model=AnimeRead, status_code=201)
+def create_anime(anime: AnimeCreate):
+    # Each anime gets its own UUID; stored as AnimeRead
+    anime_read = AnimeRead(**anime.model_dump())
+    animes[anime_read.id] = anime_read
+    return anime_read
 
-@app.get("/persons", response_model=List[PersonRead])
-def list_persons(
-    uni: Optional[str] = Query(None, description="Filter by Columbia UNI"),
-    first_name: Optional[str] = Query(None, description="Filter by first name"),
-    last_name: Optional[str] = Query(None, description="Filter by last name"),
-    email: Optional[str] = Query(None, description="Filter by email"),
-    phone: Optional[str] = Query(None, description="Filter by phone number"),
-    birth_date: Optional[str] = Query(None, description="Filter by date of birth (YYYY-MM-DD)"),
-    city: Optional[str] = Query(None, description="Filter by city of at least one address"),
-    country: Optional[str] = Query(None, description="Filter by country of at least one address"),
+@app.get("/animes", response_model=List[AnimeRead])
+def list_animes(
+    title: Optional[str] = Query(None, description="Filter by title"),
+    genre: Optional[str] = Query(None, description="Filter by genre"),
+    seasons: Optional[str] = Query(None, description="Filter by seasons"),
+    rating: Optional[str] = Query(None, description="Filter by rating"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    streaming: Optional[str] = Query(None, description="Filter by streaming"),
+    role: Optional[str] = Query(None, description="Filter by role"),
+    gender: Optional[str] = Query(None, description="Filter by gender"),
 ):
-    results = list(persons.values())
+    results = list(animes.values())
 
-    if uni is not None:
-        results = [p for p in results if p.uni == uni]
-    if first_name is not None:
-        results = [p for p in results if p.first_name == first_name]
-    if last_name is not None:
-        results = [p for p in results if p.last_name == last_name]
-    if email is not None:
-        results = [p for p in results if p.email == email]
-    if phone is not None:
-        results = [p for p in results if p.phone == phone]
-    if birth_date is not None:
-        results = [p for p in results if str(p.birth_date) == birth_date]
+    if title is not None:
+        results = [p for p in results if p.title == title]
+    if genre is not None:
+        results = [p for p in results if p.genre == genre]
+    if seasons is not None:
+        results = [p for p in results if p.seasons == seasons]
+    if rating is not None:
+        results = [p for p in results if p.rating == rating]
+    if status is not None:
+        results = [p for p in results if p.status == status]
+    if streaming is not None:
+        results = [p for p in results if str(p.streaming) == streaming]
 
-    # nested address filtering
-    if city is not None:
-        results = [p for p in results if any(addr.city == city for addr in p.addresses)]
-    if country is not None:
-        results = [p for p in results if any(addr.country == country for addr in p.addresses)]
+    # nested character filtering
+    if role is not None:
+        results = [p for p in results if any(char.role == role for char in p.characters)]
+    if gender is not None:
+        results = [p for p in results if any(char.gender == gender for char in p.addresses)]
 
     return results
 
-@app.get("/persons/{person_id}", response_model=PersonRead)
-def get_person(person_id: UUID):
-    if person_id not in persons:
-        raise HTTPException(status_code=404, detail="Person not found")
-    return persons[person_id]
+@app.get("/animes/{anime_id}", response_model=AnimeRead)
+def get_anime(anime_id: UUID):
+    if anime_id not in animes:
+        raise HTTPException(status_code=404, detail="Anime not found")
+    return animes[anime_id]
 
-@app.patch("/persons/{person_id}", response_model=PersonRead)
-def update_person(person_id: UUID, update: PersonUpdate):
-    if person_id not in persons:
-        raise HTTPException(status_code=404, detail="Person not found")
-    stored = persons[person_id].model_dump()
+@app.patch("/animes/{anime_id}", response_model=AnimeRead)
+def update_anime(anime_id: UUID, update: AnimeUpdate):
+    if anime_id not in animes:
+        raise HTTPException(status_code=404, detail="Anime not found")
+    stored = animes[anime_id].model_dump()
     stored.update(update.model_dump(exclude_unset=True))
-    persons[person_id] = PersonRead(**stored)
-    return persons[person_id]
+    animes[anime_id] = AnimeRead(**stored)
+    return animes[anime_id]
+
 
 # -----------------------------------------------------------------------------
 # Root
 # -----------------------------------------------------------------------------
 @app.get("/")
 def root():
-    return {"message": "Welcome to the Person/Address API. See /docs for OpenAPI UI."}
+    return {"message": "Welcome to the Anime/Character API. See /docs for OpenAPI UI."}
 
 # -----------------------------------------------------------------------------
 # Entrypoint for `python main.py`
